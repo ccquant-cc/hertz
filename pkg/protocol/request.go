@@ -752,6 +752,20 @@ func (req *Request) CloseBodyStream() error {
 	return err
 }
 
+// SetURI initializes request URI.
+// Use this method if a single URI may be reused across multiple requests.
+// Otherwise, you can just use SetRequestURI() and it will be parsed as new URI.
+// The URI is copied and can be safely modified later.
+func (req *Request) SetURI(newURI *URI) {
+	if newURI != nil {
+		newURI.CopyTo(&req.uri)
+		req.parsedURI = true
+		return
+	}
+	req.uri.Reset()
+	req.parsedURI = false
+}
+
 // URI returns request URI
 func (req *Request) URI() *URI {
 	req.ParseURI()

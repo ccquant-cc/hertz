@@ -44,6 +44,7 @@ package protocol
 import (
 	"bytes"
 	"io"
+	"sort"
 
 	"github.com/cloudwego/hertz/internal/bytesconv"
 	"github.com/cloudwego/hertz/internal/nocopy"
@@ -402,6 +403,19 @@ func (a *Args) Len() int {
 	return len(a.args)
 }
 
+// Sort sorts Args by key and then value using 'f' as comparison function.
+//
+// For example args.Sort(bytes.Compare).
+func (a *Args) Sort(f func(x, y []byte) int) {
+	sort.SliceStable(a.args, func(i, j int) bool {
+		n := f(a.args[i].key, a.args[j].key)
+		if n == 0 {
+			return f(a.args[i].value, a.args[j].value) == -1
+		}
+		return n == -1
+	})
+}
+
 // AppendBytes appends query string to dst and returns the extended dst.
 func (a *Args) AppendBytes(dst []byte) []byte {
 	for i, n := 0, len(a.args); i < n; i++ {
@@ -441,4 +455,32 @@ func (a *Args) WriteTo(w io.Writer) (int64, error) {
 // Multiple values for the same key may be added.
 func (a *Args) Add(key, value string) {
 	a.args = appendArg(a.args, key, value, ArgsHasValue)
+}
+
+// AddBytesV adds 'key=value' argument.
+//
+// Multiple values for the same key may be added.
+func (a *Args) AddBytesK(key []byte, value string) {
+	a.args = appendArg(a.args, b2s(key), value, ArgsHasValue)
+}
+
+// AddBytesV adds 'key=value' argument.
+//
+// Multiple values for the same key may be added.
+func (a *Args) AddBytesV(key string, value []byte) {
+	a.args = appendArg(a.args, key, b2s(value), ArgsHasValue)
+}
+
+// AddBytesKV adds 'key=value' argument.
+//
+// Multiple values for the same key may be added.
+func (a *Args) AddBytesKV(key, value []byte) {
+	a.args = appendArg(a.args, b2s(key), b2s(value), ArgsHasValue)
+}
+
+// AddNoValue adds only 'key' as argument without the '='.
+//
+// Multiple values for the same key may be added.
+func (a *Args) AddNoValue(key string) {
+	a.args = appendArg(a.args, key, "", argsNoValue)
 }
